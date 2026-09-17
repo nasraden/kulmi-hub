@@ -1,35 +1,8 @@
-"use server"; // 👈 KHADKAN CUSUB AYAA CILADDII GEBIAHAANBA REEBAYA!
+"use server";
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server"; // 👈 Waxaan si toos ah uga soo xiganay faylkeeda rasmiga ah
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-
-// Supabase Client Creator
-export function createClient() {
-  const cookieStore = cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {}
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch (error) {}
-        },
-      },
-    }
-  );
-}
 
 // 1. LOG OUT ACTION
 export async function signOut() {
@@ -144,7 +117,7 @@ export async function applyToJob(jobId: string, formData: FormData): Promise<voi
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase.from("profiles").select("id, location").eq("user_id", user.id).single();
-  const { data: talent } = await supabase.from("talent_profiles").select("id, hourly_rate, title").eq("profile_id", profile!.id).single();
+  const { data: talent = null } = await supabase.from("talent_profiles").select("id, hourly_rate, title").eq("profile_id", profile!.id).maybeSingle();
 
   if (!talent) redirect(`/jobs/${jobId}?error=Complete+your+talent+profile+first`);
 
@@ -215,4 +188,3 @@ export async function saveToTalentPool(talentId: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/company/talent-pool");
 }
- 
