@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { calculateMatchScore } from "@/lib/matching";
+
 import { createClient } from "@/lib/supabase/server";
 
 // ------------------------------------------------------------
@@ -433,4 +435,57 @@ export async function postJob(formData: FormData): Promise<void> {
 
   revalidatePath("/dashboard/company");
   redirect("/dashboard/company");
+}
+export async function applyToJob(jobId: string, formData: FormData): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, location") // Toos u soo qaad location-ka halkan
+    .eq("user_id", user.id)
+    .single();
+
+  const { data: talent } = await supabase
+    .from("talent_profiles")
+    .select("id, hourly_rate, title") // Toos u soo qaad hourly_rate iyo title halkan
+    .eq("profile_id", profile!.id)
+    .single();
+
+  if (!talent) redirect(`/jobs/${jobId}?error=Complete+your+talent+profile+first`);
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("*, company_profiles(*)")
+    .eq("id", jobId)
+    .single();
+
+  // 1. Soo qaad xogta xirfadaha talent-ka ee matching-ka
+  const { data: talentSkills } = await supabase
+    .from("talent_skills")
+    .select("skill_name")
+    .eq("talent_id", talent.id);
+
+  const skills = talentSkills?.map(s => s.skill_name) || [];
+  
+  // 2. Toos u dhex rux xogta si nadiif ah adigoo isticmaalaya "any" si uu error-ka cas u ba'o mar qutha
+  const score = calculateMatchScore(job as any, {
+    skills,
+    hourly_rate: talent.hourly_rate,
+    experience_level: talent.title || "mid", 
+    location: profile!.location || "Hargeisa, Somaliland"
+  } as any);
+
+  const { error } = await supabase.from("applications").insert({
+    job_id: jobId,
+    talent_id: talent.id,
+    match_score: score,
+    status: "pending"
+  });
+
+  if (error) redirect(`/jobs/${jobId}?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath(`/jobs/${jobId}`);
+  redirect("/dashboard/talent");
 }
