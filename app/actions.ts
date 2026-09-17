@@ -226,3 +226,44 @@ export async function signIn(prevState: any, formData: FormData) {
 
   redirect("/");
 }
+// ========================================================
+// 12. AUTH FUNCTIONS: SIGN UP / REGISTER                  
+// ========================================================
+export async function signUp(prevState: any, formData: FormData) {
+  const supabase = createClient();
+
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const fullName = String(formData.get("fullName") ?? "");
+
+  if (!email || !password || !fullName) {
+    return { error: "All fields are required." };
+  }
+
+  // 1. Ku dhalis user-ka cusub gudaha Supabase Auth
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+      },
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // 2. Gali xogta aasaasiga ah ee profile-ka qofka dhashay
+  if (data?.user) {
+    await supabase.from("profiles").insert({
+      user_id: data.user.id,
+      full_name: fullName,
+      role: null, // Waxaa lagu dooran doona onboarding role page
+    });
+  }
+
+  // Toos ugu dhufo onboarding role bogga doorashada
+  redirect("/onboarding/role");
+}
