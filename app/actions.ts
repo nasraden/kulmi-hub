@@ -264,16 +264,22 @@ export async function saveCompanyOnboarding(formData: FormData): Promise<void> {
   redirect("/dashboard/company");
 }
 
-
 // ========================================================
-// 9. TALENT FUNCTIONS: REQUEST CERTIFY BADGE            
+// 9. TALENT FUNCTIONS: REQUEST CERTIFY BADGE (Form Ready)          
 // ========================================================
-export async function requestCertifyBadge(skillId: string): Promise<void> {
+export async function requestCertifyBadge(formData: FormData): Promise<void> {
   const supabase = createClient();
 
-  // Hubi marka hore isticmaalaha furan inuu session leeyahay
+  // 1. Hubi isticmaalaha furan
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+
+  // 2. Toos u soo qaad skillId-ka uu foomku soo dirayo
+  const skillId = String(formData.get("skillId") ?? "");
+
+  if (!skillId) {
+    throw new Error("Skill ID is required");
+  }
 
   const { error } = await supabase
     .from("certify_requests")
@@ -290,7 +296,6 @@ export async function requestCertifyBadge(skillId: string): Promise<void> {
 
   revalidatePath("/dashboard/talent");
 }
-
 
 
 
