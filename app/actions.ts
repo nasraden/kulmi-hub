@@ -188,3 +188,41 @@ export async function saveToTalentPool(talentId: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/company/talent-pool");
 }
+// ========================================================
+// 11. AUTH FUNCTIONS: SIGN IN / LOGIN                    
+// ========================================================
+export async function signIn(prevState: any, formData: FormData) {
+  const supabase = createClient();
+  
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return { error: "Email and password are required." };
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  // Soo qaad xogta user-ka si toos ah loogu jiheeyo doorkiisa rasmiga ah
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profile?.role) {
+      redirect(`/dashboard/${profile.role}`);
+    }
+  }
+
+  redirect("/");
+}
