@@ -1,3 +1,5 @@
+
+
 import Navbar from "@/components/Navbar";
 import TalentOnboardingForm from "./talent-form";
 
@@ -24,3 +26,4 @@ export default function TalentOnboardingPage({
     </div>
   );
 }
+

@@ -145,12 +145,15 @@ export default async function TalentDashboardPage({
                       {pendingRequest.status}
                     </span>
                   ) : (
-                    <form action={requestCertifyBadge}>
-                      <input type="hidden" name="skillName" value={skill.skill_name} />
-                      <button className="text-sm font-medium text-teal-dark hover:underline">
-                        Request verification
-                      </button>
-                    </form>
+
+                  
+<form action={requestCertifyBadge}>
+  <input type="hidden" name="skillId" value={skill.id} /> 
+  <button type="submit" className="text-sm font-medium text-teal-dark hover:underline">
+    Request verification
+  </button>
+</form>
+
                   )}
                 </div>
               );
