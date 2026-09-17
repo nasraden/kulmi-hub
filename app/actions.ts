@@ -1,3 +1,5 @@
+"use server"; // 👈 KHADKAN CUSUB AYAA CILADDII GEBIAHAANBA REEBAYA!
+
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -49,13 +51,11 @@ export async function saveTalentOnboarding(formData: FormData) {
   const skillsText = String(formData.get("skills") ?? "");
   const portfolioText = String(formData.get("portfolio") ?? "");
 
-  // Cusbooneysii Profile-ka guud mar hore
   await supabase
     .from("profiles")
     .update({ role: "talent" })
     .eq("user_id", user.id);
 
-  // Gali xogta Talent Profile
   const { data: talent, error: talentError } = await supabase
     .from("talent_profiles")
     .upsert({
@@ -73,7 +73,6 @@ export async function saveTalentOnboarding(formData: FormData) {
     redirect(`/onboarding/talent?error=${encodeURIComponent(talentError.message)}`);
   }
 
-  // Gali xirfadaha (Skills)
   if (skillsText) {
     const skills = skillsText.split(",").map((s) => s.trim()).filter(Boolean);
     const skillInserts = skills.map((skill) => ({
@@ -216,3 +215,4 @@ export async function saveToTalentPool(talentId: string): Promise<void> {
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/company/talent-pool");
 }
+ 
