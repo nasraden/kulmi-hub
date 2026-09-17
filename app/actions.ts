@@ -265,6 +265,38 @@ export async function saveCompanyOnboarding(formData: FormData): Promise<void> {
 }
 
 
+// ========================================================
+// 9. TALENT FUNCTIONS: REQUEST CERTIFY BADGE            
+// ========================================================
+export async function requestCertifyBadge(skillId: string): Promise<void> {
+  const supabase = createClient();
+
+  // Hubi marka hore isticmaalaha furan inuu session leeyahay
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase
+    .from("certify_requests")
+    .insert({
+      talent_id: user.id,
+      skill_id: skillId,
+      status: "pending",
+      requested_at: new Date().toISOString()
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/dashboard/talent");
+}
+
+
+
+
+
+
+
 
 // ========================================================
 // 8. COMPANY FUNCTIONS: REMOVE FROM TALENT POOL          
