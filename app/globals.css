@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* Badanka Koowaad (Buluugga Kulmi Hub) */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-[#04277c] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#008291];
+  }
+
+
+/* 1. Qoraalada Sare (Labels) - Waxaan ka dhignay kuwo saf gooni ah taagan oo kala fog */
+.field-label {
+  @apply block text-sm font-semibold text-[#222325] mb-2;
+}
+
+/* 2. Sanduuqyada Wax Lagu Qoro (Inputs) - Boos iyo xariiq casri ah */
+.field-input {
+  @apply appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#008291] focus:border-[#008291] sm:text-sm text-[#222325] transition-all;
+}
+
+/* 3. Badanka Primary (Button) - Midabkaaga rasmiga ah ee Buluugga iyo Teal-ka */
+.btn-primary {
+  @apply flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-[#04277c] hover:bg-[#008291] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#04277c] transition-colors;
+}
+  /* Badanka Labaad (Cawl/Caddaan) */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50;
+  }
+}
