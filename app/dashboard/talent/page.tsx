@@ -7,7 +7,11 @@ import MatchBadge from "@/components/MatchBadge";
 import CertifyBadge from "@/components/CertifyBadge";
 import { createClient } from "@/lib/supabase/server";
 import { calculateMatchScore } from "@/lib/matching";
-import { requestCertifyBadge } from "@/app/actions";
+
+
+
+
+
 import { timeAgo } from "@/lib/utils";
 import type { Application, CertifyRequest, Job, TalentProfile } from "@/lib/types";
 
@@ -115,51 +119,6 @@ export default async function TalentDashboardPage({
           </div>
         </div>
 
-        <section className="mt-12">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-ink">Kulmi Certify</h2>
-          </div>
-          <p className="mt-1 text-sm text-muted">
-            Get an admin-reviewed badge on a skill. Verified skills carry full weight in your
-            match score, no matter what proficiency you selected.
-          </p>
-
-          <div className="mt-4 space-y-3">
-            {(talent.talent_skills ?? []).length === 0 && (
-              <p className="card p-6 text-center text-muted">Add skills to your profile first.</p>
-            )}
-            {(talent.talent_skills ?? []).map((skill) => {
-              const pendingRequest = certifyRequests.find(
-                (r) => r.skill_name.toLowerCase() === skill.skill_name.toLowerCase()
-              );
-              return (
-                <div
-                  key={skill.id}
-                  className="card flex flex-wrap items-center justify-between gap-3 p-4"
-                >
-                  <span className="font-medium text-ink">{skill.skill_name}</span>
-                  {skill.verified_badge ? (
-                    <CertifyBadge />
-                  ) : pendingRequest ? (
-                    <span className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium capitalize text-ink">
-                      {pendingRequest.status}
-                    </span>
-                  ) : (
-
-                  
-<form action={requestCertifyBadge}>
-  <input type="hidden" name="skillId" value={skill.id} /> 
-  <button type="submit" className="text-sm font-medium text-teal-dark hover:underline">
-    Request verification
-  </button>
-</form>
-
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
 
         <section className="mt-12">
           <h2 className="font-display text-lg font-semibold text-ink">Your applications</h2>
