@@ -267,6 +267,35 @@ export async function saveCompanyOnboarding(formData: FormData): Promise<void> {
 
 
 // ========================================================
+// 8. COMPANY FUNCTIONS: REMOVE FROM TALENT POOL          
+// ========================================================
+export async function removeFromTalentPool(talentPoolId: string): Promise<void> {
+  const supabase = createClient();
+
+  // Hubi marka hore in shirkaddu ay furan tahay session-ka
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase
+    .from("company_talent_pools")
+    .delete()
+    .eq("id", talentPoolId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/dashboard/company/talent-pool");
+}
+
+
+
+
+
+
+
+
+// ========================================================
 // 7. ADMIN FUNCTIONS: REVIEW CERTIFY REQUESTS            
 // ========================================================
 export async function reviewCertifyRequest(requestId: string, status: "approved" | "rejected"): Promise<void> {
