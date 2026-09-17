@@ -266,6 +266,39 @@ export async function saveCompanyOnboarding(formData: FormData): Promise<void> {
 
 
 
+// ========================================================
+// 7. ADMIN FUNCTIONS: REVIEW CERTIFY REQUESTS            
+// ========================================================
+export async function reviewCertifyRequest(requestId: string, status: "approved" | "rejected"): Promise<void> {
+  const supabase = createClient();
+  
+  // Hubi marka hore user-ka furan inuu yahay admin rasmiga ah
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { error } = await supabase
+    .from("certify_requests")
+    .update({ 
+      status,
+      reviewed_at: new Date().toISOString()
+    })
+    .eq("id", requestId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/dashboard/admin");
+}
+
+
+
+
+
+
+
+
+
 export async function requestProfileVerification(): Promise<{ success?: string; error?: string }> {
   const supabase = createClient();
   
