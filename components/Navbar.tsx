@@ -73,7 +73,7 @@ export default async function Navbar() {
               <form action={signOut}>
                 <button 
                   type="submit" 
-                  className="text-sm font-semibold text-gray-500 hover:text-red-600 transition-colors"
+                  className="text-sm font-semibold text-gray-900 hover:text-red-600 transition-colors"
                 >
                   Log out
                 </button>
@@ -84,7 +84,7 @@ export default async function Navbar() {
               <Link href="/login" className="text-sm font-semibold text-[#404145] hover:text-[#04277c] transition-colors">
                 Log in
               </Link>
-              <Link href="/register" className="text-sm font-semibold bg-[#04277c] hover:bg-[#008291] text-white px-4 py-2 rounded-md transition-all shadow-sm">
+              <Link href="/signup" className="text-sm font-semibold bg-[#04277c] hover:bg-[#008291] text-white px-4 py-2 rounded-md transition-all shadow-sm">
                 Join Kulmi Hub
               </Link>
             </>
