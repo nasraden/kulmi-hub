@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
-import { reviewCertifyRequest } from "@/app/actions";
+import { reviewCertifyRequest, reviewCompanyVerification } from "@/app/actions";
 import { timeAgo, initials } from "@/lib/utils";
 import type { CertifyRequest } from "@/lib/types";
 
@@ -40,6 +40,14 @@ export default async function AdminDashboardPage() {
     .order("requested_at", { ascending: true });
   const pendingCertify = (pendingCertifyData ?? []) as unknown as CertifyRequest[];
 
+  const { data: pendingCompanyData } = await supabase
+    .from("company_profiles")
+    .select("id, company_name, logo_url, industry, location, website, created_at, profiles(full_name, email)")
+    .eq("verification_status", "pending")
+    .order("created_at", { ascending: true });
+
+  const pendingCompanies = pendingCompanyData ?? [];
+
   const { data: recentUsers } = await supabase
     .from("profiles")
     .select("*")
@@ -74,6 +82,55 @@ export default async function AdminDashboardPage() {
             </div>
           ))}
         </div>
+
+        <section className="mt-12">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Company verification — pending reviews ({pendingCompanies.length})
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Review company identity and public details before granting the verified badge.
+          </p>
+          <div className="mt-4 space-y-3">
+            {pendingCompanies.length === 0 && (
+              <p className="card p-6 text-center text-muted">No company verification requests.</p>
+            )}
+            {pendingCompanies.map((company: any) => (
+              <div key={company.id} className="card flex flex-wrap items-center justify-between gap-4 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  {company.logo_url ? (
+                    <img src={company.logo_url} alt="" className="h-12 w-12 rounded-lg border border-line object-contain p-1" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink/5 font-semibold text-ink">
+                      {company.company_name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-ink">{company.company_name}</p>
+                    <p className="text-xs text-muted">
+                      {company.profiles?.full_name} · {company.profiles?.email}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {[company.industry, company.location].filter(Boolean).join(" · ")}
+                    </p>
+                    {company.website && (
+                      <a href={company.website} target="_blank" rel="noreferrer" className="text-xs font-medium text-teal-dark hover:underline">
+                        Visit website
+                      </a>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <form action={reviewCompanyVerification.bind(null, company.id, "verified")}>
+                    <button className="text-sm font-medium text-match hover:underline">Approve & verify</button>
+                  </form>
+                  <form action={reviewCompanyVerification.bind(null, company.id, "rejected")}>
+                    <button className="text-sm font-medium text-muted hover:text-ink">Reject</button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-12">
           <h2 className="font-display text-lg font-semibold text-ink">
