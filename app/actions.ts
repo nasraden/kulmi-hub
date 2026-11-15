@@ -335,3 +335,214 @@ export async function applyToJob(jobId: string, formData: FormData): Promise<voi
   revalidatePath(`/jobs/${jobId}`);
   redirect(`/jobs/${jobId}?applied=1`);
 }
+
+
+// ------------------------------------------------------------
+// APPLICATION REVIEW, TALENT POOL, CERTIFICATION & MESSAGING
+// ------------------------------------------------------------
+
+async function getAuthenticatedProfile() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!profile) redirect("/onboarding/role");
+  return { supabase, profile };
+}
+
+export async function updateApplicationStatus(
+  applicationId: string,
+  status: "shortlisted" | "hired" | "rejected",
+  jobId: string
+): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
+
+  const { data: company } = await supabase
+    .from("company_profiles")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!company) redirect("/onboarding/company");
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", jobId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+  if (!job) redirect("/dashboard/company");
+
+  const { error } = await supabase
+    .from("applications")
+    .update({ status })
+    .eq("id", applicationId)
+    .eq("job_id", job.id);
+
+  if (error) redirect(`/jobs/${jobId}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/dashboard/company");
+}
+
+export async function saveToTalentPool(talentId: string, jobId: string): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
+
+  const { data: company } = await supabase
+    .from("company_profiles")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!company) redirect("/onboarding/company");
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", jobId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+  if (!job) redirect("/dashboard/company");
+
+  const { data: talent } = await supabase
+    .from("talent_profiles")
+    .select("id")
+    .eq("id", talentId)
+    .maybeSingle();
+  if (!talent) redirect(`/jobs/${jobId}?error=Talent%20profile%20not%20found`);
+
+  const { error } = await supabase
+    .from("company_talent_pools")
+    .upsert(
+      { company_id: company.id, talent_id: talent.id, pool_name: "General" },
+      { onConflict: "company_id,talent_id,pool_name", ignoreDuplicates: true }
+    );
+
+  if (error) redirect(`/jobs/${jobId}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/dashboard/company/talent-pool");
+}
+
+export async function removeFromTalentPool(entryId: string): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
+
+  const { data: company } = await supabase
+    .from("company_profiles")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!company) redirect("/onboarding/company");
+
+  const { error } = await supabase
+    .from("company_talent_pools")
+    .delete()
+    .eq("id", entryId)
+    .eq("company_id", company.id);
+
+  if (error) redirect(`/dashboard/company/talent-pool?error=${encodeURIComponent(error.message)}`);
+  revalidatePath("/dashboard/company/talent-pool");
+}
+
+export async function reviewCertifyRequest(
+  requestId: string,
+  status: "approved" | "rejected"
+): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "admin") redirect("/");
+
+  const { data: request } = await supabase
+    .from("certify_requests")
+    .select("id, talent_id, skill_name, status")
+    .eq("id", requestId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (!request) redirect("/dashboard/admin?error=Request%20not%20found%20or%20already%20reviewed");
+
+  const { error } = await supabase
+    .from("certify_requests")
+    .update({ status, reviewed_at: new Date().toISOString() })
+    .eq("id", requestId)
+    .eq("status", "pending");
+
+  if (error) redirect(`/dashboard/admin?error=${encodeURIComponent(error.message)}`);
+
+  if (status === "approved") {
+    await supabase
+      .from("talent_skills")
+      .update({ verified_badge: true })
+      .eq("talent_id", request.talent_id)
+      .ilike("skill_name", request.skill_name);
+
+    const { data: skills } = await supabase
+      .from("talent_skills")
+      .select("verified_badge")
+      .eq("talent_id", request.talent_id);
+
+    if (skills?.length && skills.every((skill) => skill.verified_badge)) {
+      await supabase
+        .from("talent_profiles")
+        .update({ is_verified: true })
+        .eq("id", request.talent_id);
+    }
+  }
+
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/company");
+}
+
+export async function sendMessage(formData: FormData): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  const applicationId = String(formData.get("applicationId") ?? "");
+  const receiverId = String(formData.get("receiverId") ?? "");
+  const jobId = String(formData.get("jobId") ?? "");
+  const content = String(formData.get("content") ?? "").trim();
+
+  if (!applicationId || !receiverId || !jobId || !content) {
+    redirect("/messages?error=Please%20complete%20the%20message");
+  }
+
+  const { data: application } = await supabase
+    .from("applications")
+    .select("id, job_id, talent_id, jobs(company_id, company_profiles(profile_id))")
+    .eq("id", applicationId)
+    .eq("job_id", jobId)
+    .maybeSingle();
+
+  if (!application) redirect("/messages");
+
+  const companyProfileId = (application as any).jobs?.company_profiles?.profile_id as string | undefined;
+  const { data: talent } = await supabase
+    .from("talent_profiles")
+    .select("profile_id")
+    .eq("id", application.talent_id)
+    .maybeSingle();
+  const talentProfileId = talent?.profile_id;
+
+  const isCompany = profile.id === companyProfileId;
+  const isTalent = profile.id === talentProfileId;
+  if ((!isCompany && !isTalent) || receiverId !== (isCompany ? talentProfileId : companyProfileId)) {
+    redirect("/messages");
+  }
+
+  const { error } = await supabase.from("messages").insert({
+    application_id: applicationId,
+    sender_id: profile.id,
+    receiver_id: receiverId,
+    job_id: jobId,
+    content,
+  });
+
+  if (error) redirect(`/messages/${applicationId}?error=${encodeURIComponent(error.message)}`);
+  revalidatePath(`/messages/${applicationId}`);
+  redirect(`/messages/${applicationId}`);
+}
