@@ -47,6 +47,13 @@ export default async function AdminDashboardPage() {
     .order("created_at", { ascending: true });
 
   const pendingCompanies = pendingCompanyData ?? [];
+  const { data: verifiedCompanyData } = await supabase
+    .from("company_profiles")
+    .select("id, company_name, logo_url, industry, location, verified_at")
+    .eq("verification_status", "verified")
+    .order("verified_at", { ascending: false })
+    .limit(20);
+  const verifiedCompanies = verifiedCompanyData ?? [];
 
   const { data: recentUsers } = await supabase
     .from("profiles")
@@ -127,6 +134,37 @@ export default async function AdminDashboardPage() {
                     <button className="text-sm font-medium text-muted hover:text-ink">Reject</button>
                   </form>
                 </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-12">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Verified companies ({verifiedCompanies.length})
+          </h2>
+          <div className="card mt-4 divide-y divide-line">
+            {verifiedCompanies.length === 0 && (
+              <p className="p-5 text-sm text-muted">No verified companies yet.</p>
+            )}
+            {verifiedCompanies.map((company) => (
+              <div key={company.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="flex items-center gap-3">
+                  {company.logo_url ? (
+                    <img src={company.logo_url} alt="" className="h-10 w-10 rounded-lg border border-line object-contain p-1" />
+                  ) : (
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink/5 font-semibold text-ink">
+                      {company.company_name.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-ink">{company.company_name}</p>
+                    <p className="text-xs text-muted">{[company.industry, company.location].filter(Boolean).join(" · ")}</p>
+                  </div>
+                </div>
+                <form action={reviewCompanyVerification.bind(null, company.id, "unverified")}>
+                  <button className="text-sm font-medium text-red-700 hover:underline">Revoke verification</button>
+                </form>
               </div>
             ))}
           </div>
