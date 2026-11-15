@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MatchBadge from "@/components/MatchBadge";
 import CertifyBadge from "@/components/CertifyBadge";
+import CompanyVerifiedBadge from "@/components/CompanyVerifiedBadge";
 import { createClient } from "@/lib/supabase/server";
 import { calculateMatchScore } from "@/lib/matching";
 import { applyToJob, closeJob, reopenJob, updateApplicationStatus, saveToTalentPool } from "@/app/actions";
@@ -124,9 +125,12 @@ export default async function JobDetailPage({
         )}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-muted">
-              {job.company_profiles?.company_name}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/companies/${job.company_profiles?.id}`} className="text-sm font-medium text-muted hover:text-teal-dark">
+                {job.company_profiles?.company_name}
+              </Link>
+              {job.company_profiles?.verification_status === "verified" && <CompanyVerifiedBadge />}
+            </div>
             <h1 className="mt-1 font-display text-2xl font-semibold text-ink md:text-3xl">
               {job.title}
             </h1>
