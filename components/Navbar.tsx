@@ -8,7 +8,14 @@ const navGroups = [
     label: "Hire talent",
     links: [
       { label: "Post a job", href: "/jobs/new", description: "Find the right people for your business" },
-      { label: "Business services", href: "/services", description: "Explore Kulmi Hub solutions" },
+      { label: "Business services", href: "/services", description: "Explore solutions for your business" },
+    ],
+  },
+  {
+    label: "Get outcomes",
+    links: [
+      { label: "Explore solutions", href: "/services", description: "See how Kulmi Hub helps businesses grow" },
+      { label: "How it works", href: "/about", description: "Discover the Kulmi Hub approach" },
     ],
   },
   {
@@ -29,7 +36,7 @@ const navGroups = [
 
 function ChevronDown() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180">
+    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180">
       <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -56,8 +63,8 @@ export default async function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white text-[#404145] shadow-sm">
-      <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 sm:px-8">
-        <div className="flex min-w-0 items-center gap-8">
+      <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-4 sm:px-6 xl:px-8">
+        <div className="flex min-w-0 items-center gap-5 xl:gap-7">
           <Link href="/" aria-label="Kulmi Hub homepage" className="flex shrink-0 items-center">
             <Image
               src="/brand/kulmi.png"
@@ -69,13 +76,13 @@ export default async function Navbar() {
             />
           </Link>
 
-          <div className="hidden items-center gap-7 md:flex">
+          <div className="hidden items-center gap-4 lg:flex xl:gap-6">
             {navGroups.map((group) => (
               <div key={group.label} className="group relative flex h-[76px] items-center">
                 <button
                   type="button"
                   aria-haspopup="true"
-                  className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-[#404145] transition-colors hover:text-[#008291] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008291] focus-visible:ring-offset-4"
+                  className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-[#404145] transition-colors hover:text-[#008291] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008291] focus-visible:ring-offset-4"
                 >
                   {group.label}
                   <ChevronDown />
@@ -84,7 +91,7 @@ export default async function Navbar() {
                 <div className="invisible absolute left-0 top-[calc(100%-1px)] z-50 w-72 translate-y-2 rounded-xl border border-gray-100 bg-white p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
                   {group.links.map((item) => (
                     <Link
-                      key={item.href}
+                      key={item.href + item.label}
                       href={item.href}
                       className="block rounded-lg px-4 py-3 transition-colors hover:bg-[#f2f8f8] focus-visible:bg-[#f2f8f8] focus-visible:outline-none"
                     >
@@ -98,26 +105,23 @@ export default async function Navbar() {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center gap-3 xl:gap-4">
           {user ? (
             <>
               <Link
                 href={dashboardHref}
-                className="hidden rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-gray-50 sm:inline-flex"
+                className="hidden rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-gray-50 sm:inline-flex"
               >
                 My dashboard
               </Link>
               <Link
                 href="/messages"
-                className="hidden text-sm font-semibold transition-colors hover:text-[#008291] lg:inline-flex"
+                className="hidden text-sm font-semibold transition-colors hover:text-[#008291] xl:inline-flex"
               >
                 Messages
               </Link>
               <form action={signOut}>
-                <button
-                  type="submit"
-                  className="text-sm font-semibold text-gray-900 transition-colors hover:text-red-600"
-                >
+                <button type="submit" className="text-sm font-semibold text-gray-900 transition-colors hover:text-red-600">
                   Log out
                 </button>
               </form>
@@ -129,7 +133,7 @@ export default async function Navbar() {
               </Link>
               <Link
                 href="/signup"
-                className="rounded-md bg-[#008291] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#006d78]"
+                className="rounded-md bg-[#008291] px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#006d78] xl:px-4"
               >
                 Sign up
               </Link>
