@@ -59,6 +59,10 @@ export interface CompanyProfile {
   website: string | null;
   location: string | null;
   description: string | null;
+  verification_status: "unverified" | "pending" | "verified" | "rejected";
+  verified_at: string | null;
+  verified_by: string | null;
+  verification_notes?: string | null;
   profiles?: Profile;
 }
 

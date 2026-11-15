@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MatchBadge from "@/components/MatchBadge";
+import CompanyVerifiedBadge from "@/components/CompanyVerifiedBadge";
+import { requestCompanyVerification } from "@/app/actions";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/utils";
 import type { Job } from "@/lib/types";
@@ -47,8 +49,14 @@ export default async function CompanyDashboardPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-muted">{company.company_name}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-ink">{company.company_name}</p>
+              {company.verification_status === "verified" && <CompanyVerifiedBadge />}
+            </div>
             <h1 className="font-display text-2xl font-semibold text-ink">Company dashboard</h1>
+            <Link href={`/companies/${company.id}`} className="mt-2 inline-flex text-sm font-medium text-teal-dark hover:underline">
+              View public company profile
+            </Link>
           </div>
           <div className="flex gap-3">
             <Link href="/dashboard/company/talent-pool" className="btn-secondary text-sm">
@@ -62,6 +70,30 @@ export default async function CompanyDashboardPage() {
             </Link>
           </div>
         </div>
+
+        <section className="mt-6 card flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <p className="font-medium text-ink">Company verification</p>
+            <p className="mt-1 text-sm text-muted">
+              {company.verification_status === "verified"
+                ? "Your company profile is verified by Kulmi Hub."
+                : company.verification_status === "pending"
+                ? "Your verification request is awaiting admin review."
+                : company.verification_status === "rejected"
+                ? "Your previous request was not approved. Update your company details and request another review."
+                : "Request an official Kulmi Hub review to receive the verified badge."}
+            </p>
+          </div>
+          {company.verification_status !== "verified" && company.verification_status !== "pending" && (
+            <form action={requestCompanyVerification}>
+              <button type="submit" className="btn-secondary text-sm">Request verification</button>
+            </form>
+          )}
+          {company.verification_status === "verified" && <CompanyVerifiedBadge />}
+          {company.verification_status === "pending" && (
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">Pending review</span>
+          )}
+        </section>
 
         <div className="mt-8 grid gap-6 sm:grid-cols-3">
           <div className="card p-5">

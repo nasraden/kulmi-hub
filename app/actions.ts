@@ -500,6 +500,46 @@ export async function reviewCertifyRequest(
   revalidatePath("/dashboard/company");
 }
 
+export async function requestCompanyVerification(): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
+  const { data: company } = await supabase
+    .from("company_profiles")
+    .select("id, verification_status")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!company) redirect("/onboarding/company");
+  if (company.verification_status === "verified") redirect("/dashboard/company");
+  if (company.verification_status === "pending") redirect("/dashboard/company?notice=Verification%20request%20already%20pending");
+
+  const { error } = await supabase
+    .from("company_profiles")
+    .update({ verification_status: "pending" })
+    .eq("id", company.id);
+  if (error) redirect("/dashboard/company?error=" + encodeURIComponent(error.message));
+  revalidatePath("/dashboard/company");
+  revalidatePath("/dashboard/admin");
+}
+
+export async function reviewCompanyVerification(
+  companyId: string,
+  status: "verified" | "rejected" | "unverified"
+): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "admin") redirect("/");
+  const update = status === "verified"
+    ? { verification_status: status, verified_at: new Date().toISOString(), verified_by: profile.id }
+    : { verification_status: status, verified_at: null, verified_by: null };
+  const { error } = await supabase
+    .from("company_profiles")
+    .update(update)
+    .eq("id", companyId);
+  if (error) redirect("/dashboard/admin?error=" + encodeURIComponent(error.message));
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/company");
+  revalidatePath("/jobs");
+}
+
 export async function sendMessage(formData: FormData): Promise<void> {
   const { supabase, profile } = await getAuthenticatedProfile();
   const applicationId = String(formData.get("applicationId") ?? "");
