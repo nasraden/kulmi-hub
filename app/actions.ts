@@ -65,6 +65,53 @@ export async function signIn(
   redirect(next || `/dashboard/${profile.role}`);
 }
 
+export async function requestPasswordReset(
+  _prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Please enter your email address." };
+
+  const supabase = createClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://kulmihub.com";
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+  });
+
+  if (error) return { error: "We couldn't send the reset email. Please try again shortly." };
+
+  // Keep the response generic so the form does not reveal whether an account exists.
+  return {
+    success: "If an account exists for that email, you'll receive a password reset link shortly. Please check your inbox and spam folder.",
+  };
+}
+
+export async function updatePassword(
+  _prevState: AuthFormState,
+  formData: FormData
+): Promise<AuthFormState> {
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
+
+  if (password.length < 6) {
+    return { error: "Your password must be at least 6 characters." };
+  }
+  if (password !== confirmPassword) {
+    return { error: "The passwords do not match." };
+  }
+
+  const supabase = createClient();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return { error: "Your reset link has expired. Please request a new password reset link." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  return { success: "Your password has been updated. You can now log in with your new password." };
+}
+
 export async function signOut() {
   const supabase = createClient();
   await supabase.auth.signOut();
