@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { signIn } from "@/app/actions";
 
@@ -34,9 +35,9 @@ export default function LoginForm({ next }: { next: string }) {
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       <div className="flex justify-end -mt-2">
-        <a href="/forgot-password" className="text-sm font-medium text-teal-dark hover:underline">
+        <Link href="/forgot-password" className="text-sm font-medium text-teal-dark hover:underline">
           Forgot password?
-        </a>
+        </Link>
       </div>
       <SubmitButton />
     </form>
