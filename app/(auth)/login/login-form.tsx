@@ -33,6 +33,11 @@ export default function LoginForm({ next }: { next: string }) {
         <input id="password" name="password" type="password" required className="field-input" />
       </div>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+      <div className="flex justify-end -mt-2">
+        <a href="/forgot-password" className="text-sm font-medium text-teal-dark hover:underline">
+          Forgot password?
+        </a>
+      </div>
       <SubmitButton />
     </form>
   );
