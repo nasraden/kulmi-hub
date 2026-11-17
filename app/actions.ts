@@ -73,7 +73,7 @@ export async function requestPasswordReset(
   if (!email) return { error: "Please enter your email address." };
 
   const supabase = createClient();
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://kulmihub.com").replace(/\\/$/, "");
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://kulmihub.com").replace(/\/$/, "");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
   });
