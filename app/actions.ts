@@ -273,22 +273,14 @@ export async function saveCompanyOnboarding(formData: FormData): Promise<void> {
 // ------------------------------------------------------------
 
 export async function postJob(formData: FormData): Promise<void> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user!.id)
-    .single();
   const { data: company } = await supabase
     .from("company_profiles")
     .select("id")
-    .eq("profile_id", profile!.id)
-    .single();
+    .eq("profile_id", profile.id)
+    .maybeSingle();
 
   if (!company)
     redirect("/jobs/new?error=Finish%20your%20company%20profile%20before%20posting%20a%20job");
@@ -320,18 +312,44 @@ export async function postJob(formData: FormData): Promise<void> {
   redirect(`/jobs/${job.id}`);
 }
 
-export async function closeJob(jobId: string) {
-  const supabase = createClient();
-  await supabase.from("jobs").update({ status: "closed" }).eq("id", jobId);
+async function updateOwnedJobStatus(jobId: string, status: "open" | "closed"): Promise<void> {
+  if (!jobId || jobId.length > 100) redirect("/dashboard/company");
+
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "company") redirect("/");
+
+  const { data: company } = await supabase
+    .from("company_profiles")
+    .select("id")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+  if (!company) redirect("/onboarding/company");
+
+  const { data: job } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("id", jobId)
+    .eq("company_id", company.id)
+    .maybeSingle();
+  if (!job) redirect("/dashboard/company");
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status })
+    .eq("id", job.id)
+    .eq("company_id", company.id);
+
+  if (error) redirect("/dashboard/company?error=" + encodeURIComponent(error.message));
   revalidatePath("/dashboard/company");
   revalidatePath(`/jobs/${jobId}`);
 }
 
-export async function reopenJob(jobId: string) {
-  const supabase = createClient();
-  await supabase.from("jobs").update({ status: "open" }).eq("id", jobId);
-  revalidatePath("/dashboard/company");
-  revalidatePath(`/jobs/${jobId}`);
+export async function closeJob(jobId: string): Promise<void> {
+  await updateOwnedJobStatus(jobId, "closed");
+}
+
+export async function reopenJob(jobId: string): Promise<void> {
+  await updateOwnedJobStatus(jobId, "open");
 }
 
 export async function applyToJob(jobId: string, formData: FormData): Promise<void> {
