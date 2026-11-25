@@ -518,6 +518,28 @@ export async function removeFromTalentPool(entryId: string): Promise<void> {
   revalidatePath("/dashboard/company/talent-pool");
 }
 
+export async function manageAdminAccess(formData: FormData): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "admin") redirect("/");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email || email.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    redirect("/dashboard/admin?error=Enter%20a%20valid%20email%20address");
+  }
+  const { error } = await supabase.rpc("manage_admin_access", { target_email: email, grant_access: true });
+  if (error) redirect("/dashboard/admin?error=" + encodeURIComponent(error.message));
+  revalidatePath("/dashboard/admin");
+}
+
+export async function removeAdminAccess(email: string): Promise<void> {
+  const { supabase, profile } = await getAuthenticatedProfile();
+  if (profile.role !== "admin") redirect("/");
+  const normalizedEmail = String(email ?? "").trim().toLowerCase();
+  if (!normalizedEmail || normalizedEmail.length > 254) redirect("/dashboard/admin");
+  const { error } = await supabase.rpc("manage_admin_access", { target_email: normalizedEmail, grant_access: false });
+  if (error) redirect("/dashboard/admin?error=" + encodeURIComponent(error.message));
+  revalidatePath("/dashboard/admin");
+}
+
 export async function reviewCertifyRequest(
   requestId: string,
   status: "approved" | "rejected"
