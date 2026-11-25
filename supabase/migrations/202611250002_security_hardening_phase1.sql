@@ -18,32 +18,78 @@ alter table public.talent_experience enable row level security;
 alter table public.talent_profiles enable row level security;
 alter table public.talent_skills enable row level security;
 
--- 2) Messages: the sender must be the signed-in profile and both parties
--- must be the talent/company attached to the referenced application and job.
+-- 2) Messages: validate both participants against the application/job.
+-- SECURITY DEFINER avoids accidental failures when related rows are hidden by
+-- their own RLS policies (for example, a closed job with an active conversation).
+create or replace function public.can_send_application_message(
+  p_application_id uuid,
+  p_job_id uuid,
+  p_sender_id uuid,
+  p_receiver_id uuid
+)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists (
+    select 1
+    from public.profiles sender_profile
+    join public.applications a on a.id = p_application_id
+    join public.jobs j on j.id = a.job_id
+    join public.company_profiles cp on cp.id = j.company_id
+    join public.talent_profiles tp on tp.id = a.talent_id
+    where sender_profile.id = p_sender_id
+      and sender_profile.user_id = auth.uid()
+      and a.job_id = p_job_id
+      and (
+        (p_sender_id = cp.profile_id and p_receiver_id = tp.profile_id)
+        or
+        (p_sender_id = tp.profile_id and p_receiver_id = cp.profile_id)
+      )
+  );
+$;
+
+revoke all on function public.can_send_application_message(uuid, uuid, uuid, uuid) from public;
+grant execute on function public.can_send_application_message(uuid, uuid, uuid, uuid) to authenticated;
+
 drop policy if exists messages_insert_participant on public.messages;
 create policy messages_insert_participant
 on public.messages
 for insert
 to authenticated
 with check (
-  sender_id in (
-    select p.id from public.profiles p where p.user_id = auth.uid()
+  public.can_send_application_message(
+    application_id,
+    job_id,
+    sender_id,
+    receiver_id
+  )
+);
+
+-- The legacy broad insert policy would otherwise let any signed-in user
+-- create arbitrary profile rows (including privileged roles).
+drop policy if exists "Allow authenticated insert" on public.profiles;
+
+-- Applications may only be created by the owning talent for an open job.
+drop policy if exists applications_insert_talent on public.applications;
+create policy applications_insert_talent
+on public.applications
+for insert
+to authenticated
+with check (
+  talent_id in (
+    select tp.id
+    from public.talent_profiles tp
+    join public.profiles p on p.id = tp.profile_id
+    where p.user_id = auth.uid()
   )
   and exists (
     select 1
-    from public.applications a
-    join public.jobs j on j.id = a.job_id
-    join public.company_profiles cp on cp.id = j.company_id
-    join public.talent_profiles tp on tp.id = a.talent_id
-    join public.profiles sender_profile on sender_profile.id = messages.sender_id
-    where a.id = messages.application_id
-      and a.job_id = messages.job_id
-      and sender_profile.user_id = auth.uid()
-      and (
-        (messages.sender_id = cp.profile_id and messages.receiver_id = tp.profile_id)
-        or
-        (messages.sender_id = tp.profile_id and messages.receiver_id = cp.profile_id)
-      )
+    from public.jobs j
+    where j.id = applications.job_id
+      and j.status = 'open'
   )
 );
 
