@@ -71,6 +71,16 @@ with check (
 -- The legacy broad insert policy would otherwise let any signed-in user
 -- create arbitrary profile rows (including privileged roles).
 drop policy if exists "Allow authenticated insert" on public.profiles;
+drop policy if exists profiles_insert_own on public.profiles;
+create policy profiles_insert_own
+on public.profiles
+for insert
+to authenticated
+with check (
+  auth.uid() = user_id
+  and role in ('talent', 'company')
+  and lower(email) = lower(auth.jwt() ->> 'email')
+);
 
 -- Applications may only be created by the owning talent for an open job.
 drop policy if exists applications_insert_talent on public.applications;
