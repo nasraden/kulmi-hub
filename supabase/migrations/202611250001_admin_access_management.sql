@@ -12,14 +12,14 @@ create policy admin_members_read_admins on public.admin_members for select using
 -- Prevent users from assigning themselves the admin role through profile insert/update.
 drop policy if exists profiles_insert_own on public.profiles;
 create policy profiles_insert_own on public.profiles for insert
-with check (auth.uid() = user_id and role in ('talent','company'));
+with check (auth.uid() = user_id and role in ('talent','company') and lower(email) = lower(auth.jwt() ->> 'email'));
 
 create or replace function public.guard_profile_role_changes()
 returns trigger language plpgsql security definer set search_path=public as $$
 begin
   if new.role is distinct from old.role
      and not public.is_admin()
-     and lower(new.email) <> 'adann364@gmail.com' then
+     and not exists (select 1 from auth.users u where u.id = new.user_id and lower(u.email) = 'adann364@gmail.com' and u.email_confirmed_at is not null) then
     raise exception 'Only Kulmi Hub administrators can change account roles.';
   end if;
   return new;
@@ -32,7 +32,7 @@ for each row execute function public.guard_profile_role_changes();
 create or replace function public.bootstrap_kulmi_super_admin()
 returns trigger language plpgsql security definer set search_path=public as $$
 begin
-  if lower(new.email) = 'adann364@gmail.com' then
+  if exists (select 1 from auth.users u where u.id = new.user_id and lower(u.email) = 'adann364@gmail.com' and u.email_confirmed_at is not null) then
     insert into public.admin_members(profile_id,role,previous_role)
     values(new.id,'super_admin',null)
     on conflict(profile_id) do update set role='super_admin',previous_role=null;
@@ -46,9 +46,9 @@ create trigger bootstrap_kulmi_super_admin_on_profile after insert on public.pro
 for each row execute function public.bootstrap_kulmi_super_admin();
 
 insert into public.admin_members(profile_id,role,previous_role)
-select id,'super_admin',null from public.profiles where lower(email)='adann364@gmail.com'
+select p.id,'super_admin',null from public.profiles p join auth.users u on u.id=p.user_id where lower(u.email)='adann364@gmail.com' and u.email_confirmed_at is not null
 on conflict(profile_id) do update set role='super_admin',previous_role=null;
-update public.profiles set role='admin' where lower(email)='adann364@gmail.com';
+update public.profiles p set role='admin' from auth.users u where u.id=p.user_id and lower(u.email)='adann364@gmail.com' and u.email_confirmed_at is not null;
 
 create or replace function public.manage_admin_access(target_email text, grant_access boolean)
 returns void language plpgsql security definer set search_path=public as $$
