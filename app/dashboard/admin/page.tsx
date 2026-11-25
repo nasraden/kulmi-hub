@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { createClient } from "@/lib/supabase/server";
-import { reviewCertifyRequest, reviewCompanyVerification } from "@/app/actions";
+import { manageAdminAccess, removeAdminAccess, reviewCertifyRequest, reviewCompanyVerification } from "@/app/actions";
 import { timeAgo, initials } from "@/lib/utils";
 import type { CertifyRequest } from "@/lib/types";
 
@@ -44,6 +44,11 @@ export default async function AdminDashboardPage() {
     .from("company_profiles")
     .select("id, company_name, logo_url, industry, location, website, created_at, profiles(full_name, email)")
     .eq("verification_status", "pending")
+    .order("created_at", { ascending: true });
+
+  const { data: adminMembers } = await supabase
+    .from("admin_members")
+    .select("role, profiles(full_name, email)")
     .order("created_at", { ascending: true });
 
   const pendingCompanies = pendingCompanyData ?? [];
@@ -89,6 +94,28 @@ export default async function AdminDashboardPage() {
             </div>
           ))}
         </div>
+
+        <section className="mt-12">
+          <h2 className="font-display text-lg font-semibold text-ink">Admin access</h2>
+          <p className="mt-1 text-sm text-muted">Only the Super Admin can grant or revoke admin access. Users must already have a Kulmi Hub account.</p>
+          <form action={manageAdminAccess} className="card mt-4 flex flex-col gap-3 p-4 sm:flex-row">
+            <label className="sr-only" htmlFor="admin-email">User email</label>
+            <input id="admin-email" name="email" type="email" required maxLength={254} placeholder="Registered user's email" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm" />
+            <button type="submit" className="rounded-lg bg-ink px-5 py-2 text-sm font-semibold text-white">Grant admin access</button>
+          </form>
+          <div className="card mt-4 divide-y divide-line">
+            {(adminMembers ?? []).map((member: any) => (
+              <div key={member.profiles?.email} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div><p className="text-sm font-medium text-ink">{member.profiles?.full_name}</p><p className="text-xs text-muted">{member.profiles?.email}</p></div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium capitalize text-ink">{member.role.replace("_", " ")}</span>
+                  {member.role !== "super_admin" && member.profiles?.email && <form action={removeAdminAccess.bind(null, member.profiles.email)}><button className="text-sm font-medium text-red-700 hover:underline">Remove admin</button></form>}
+                </div>
+              </div>
+            ))}
+            {(!adminMembers || adminMembers.length === 0) && <p className="p-5 text-sm text-muted">No admin members found.</p>}
+          </div>
+        </section>
 
         <section className="mt-12">
           <h2 className="font-display text-lg font-semibold text-ink">
